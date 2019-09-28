@@ -25,7 +25,7 @@ def get_volunteers_event(eventIdArray, fromDateTime, toDateTime):
 
 
 def get_volunteers_from_eventId(eventId):
-    eventvolunteersids = Eventregistration.objects.values_list('userId', flat=True).filter(eventId=eventId)
+    eventvolunteersids = Eventregistration.objects.values_list('userId', flat=True).filter(eventId=eventId).filter(status='attended')
 
     volunteers = []
     for id in eventvolunteersids:
@@ -88,4 +88,3 @@ def convertDate(fromdate, todate):
     toDateArray = (todate.split('-'))
     dateB = datetime.datetime(int(toDateArray[0]),int(toDateArray[1]),int(toDateArray[2]))
     return(dateA,dateB)
-

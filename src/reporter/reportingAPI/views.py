@@ -9,14 +9,19 @@ from .utils import getEventById_DateTime
 
 from datetime import datetime, date
 import datetime as _datetime
+from django.http import HttpResponse
+import csv, requests
 
 # Create your views here.
 # Retrieve event details based on event id
 def demographic(request):
     eventId = request.GET.get('eventId', None)
+    return JsonResponse(demographic_support(eventId))
+
+def demographic_support(eventId):
     eventdetails = Event.objects.get(eventId__exact=eventId)
     eventcategories = Eventcategory.objects.values_list('categoryId', flat=True).filter(eventId=eventId)
-    eventvolunteersid = Eventregistration.objects.values_list('userId', flat=True).filter(eventId=eventId)
+    # eventvolunteersid = Eventregistration.objects.values_list('userId', flat=True).filter(eventId=eventId).filter(status='attended')
 
     volunteers = get_volunteers_from_eventId(eventId)
 
@@ -30,13 +35,13 @@ def demographic(request):
         "eventName":eventdetails.eventName,
         "startDateTime":eventdetails.startDateTime,
         "endDateTime":eventdetails.endDateTime,
-        "numParticipants":eventdetails.maxParticipants,
+        "numParticipants":len(volunteers),
         "organizerName":eventdetails.organizerName,
         "categoryId":categories,
         "volunteers":volunteers,
         "eventStatus": eventdetails.eventStatus
     }
-    return JsonResponse(data)
+    return data
 
 # Retrieve events based on organisation that organised it
 def organization(request):
@@ -55,27 +60,27 @@ def organization(request):
 def historical(request):
     fromdate = request.GET.get('fromDate', None)
     todate = request.GET.get('toDate', None)
-    fromDate, toDate = convertDate(fromdate,todate)
+    if fromdate:
+        if todate:
+            fromDate, toDate = convertDate(fromdate,todate)
 
-    if fromDate > toDate or (toDate-fromDate).days > 365:
-        return JsonResponse({"error":"change this later"})
+            if fromDate > toDate: #or (toDate-fromDate).days > 365:
+                return JsonResponse({"error":"change this later"})
+        else:
+            return JsonResponse({"error":"change this later"})
+    else:
+        if todate:
+            return JsonResponse({"error":"change this later"})
+        else:
+            # print('here')
+            fromDate = date.today() - _datetime.timedelta(days=365)
+            toDate = datetime.combine(date.today(), datetime.max.time())
 
     eventIdList = Event.objects.values_list('eventId',flat=True).filter(startDateTime__gte = fromDate).filter(endDateTime__lte = toDate)
 
     events=[]
-    totalHours = 0
     for id in eventIdList:
-        temp = getEventById_DateTime(id)
-        events.append(temp)
-        totalHours += temp["numHours"]
-
-    # data = {
-    # "numEvents": len(events),
-    # "totalHours":totalHours,
-    # "fromDate":_fromDate,
-    # "toDate":_toDate,
-    # "events": events
-    #          }
+        events.append(demographic_support(id))
 
     return JsonResponse({"events": events})
 
@@ -126,14 +131,14 @@ def user_historical(request):
 
 def export_csv_single_event(request):
     eventid = request.GET.get('eventId', None)
-    eventdetails = Event.objects.get(id__exact=eventid)
+    eventdetails = Event.objects.get(eventId__exact=eventid)
     eventcategories = Eventcategory.objects.values_list('categoryId', flat=True).filter(eventId=eventid)
     eventvolunteersid = Eventregistration.objects.values_list('userId', flat=True).filter(eventId=eventid)
 
     volunteers = []
     for value in eventvolunteersid:
         user = User.objects.values('userId', 'userName', 'emailAddress', 'firstName', 'lastName', 'gender', 'dateOfBirth', 'accountType').get(userId__exact=value)
-        print(user)# del user['_state']
+        # print(user)# del user['_state']
         volunteers.append(user)
 
     categories = [value for value in eventcategories]
@@ -161,44 +166,65 @@ def writecsv_single_event(eventid, eventdetails, categories, volunteers):
     return response
 
 def export_csv_events(request):
-    fromDate = request.GET.get('fromDate', None)
-    toDate = request.GET.get('toDate', None)
-    fromDate, toDate = convertDateTimes(fromdate,todate)
-    _fromDate, _toDate = convertDates(fromdate,todate)
+    fromdate = request.GET.get('fromDate', None)
+    todate = request.GET.get('toDate', None)
 
-    if fromDate > toDate or (toDate-fromDate).days > 365:
-        return JsonResponse({"error":"change this later"})
+    if fromdate:
+        if todate:
+            fromDate, toDate = convertDate(fromdate,todate)
 
-    eventdetails = Event.objects.get(id__exact=eventid)
-    eventcategories = Eventcategory.objects.values_list('categoryId', flat=True).filter(eventId=eventid)
-    eventvolunteersid = Eventregistration.objects.values_list('userId', flat=True).filter(eventId=eventid)
+            if fromDate > toDate or (toDate-fromDate).days > 365:
+                return JsonResponse({"error":"change this later"})
+        else:
+            return JsonResponse({"error":"change this later"})
+    else:
+        if todate:
+            return JsonResponse({"error":"change this later"})
+        else:
+            # print('here')
+            fromDate = date.today() - _datetime.timedelta(days=365)
+            _toDate = date.today()
+            toDate = datetime.combine(_toDate, datetime.max.time())
 
-    volunteers = []
-    for value in eventvolunteersid:
-        user = User.objects.values('userId', 'userName', 'emailAddress', 'firstName', 'lastName', 'gender', 'dateOfBirth', 'accountType').get(userId__exact=value)
-        print(user)# del user['_state']
-        volunteers.append(user)
+    eventIdList = Event.objects.values_list('eventId', flat=True).filter(startDateTime__gte = fromDate).filter(endDateTime__lte = toDate)
 
-    categories = [value for value in eventcategories]
-
-    return writecsv(eventid, eventdetails, categories, volunteers)
-
-def writecsv(eventid, eventdetails, categories, volunteers):
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="' + eventdetails.eventName + '.csv"'
+    response['Content-Disposition'] = 'attachment; filename="EventSummary.csv"'
 
     writer = csv.writer(response)
 
-    writer.writerow(['Event ID: ' + eventid])
-    writer.writerow(['Event name: ' + eventdetails.eventName])
-    writer.writerow(['Event start datetime: ' + str(eventdetails.startDateTime)])
-    writer.writerow(['Event end datetime: ' + str(eventdetails.endDateTime)])
-    writer.writerow(['Number of participants required: ' + str(eventdetails.maxParticipants)])
-    writer.writerow(['Organizer name: ' + eventdetails.organizerName])
-    writer.writerow(['Category: ' + str(categories)])
+    writer.writerow(['Events Summary'])
+    writer.writerow(['Start date range: ' + str(fromDate)])
+    writer.writerow(['End date range: ' + str(_toDate)])
     writer.writerow([ ])
-    writer.writerow(['User ID', 'Username', 'Email address', 'First name', 'Last name', 'Gender', 'Date of birth'])
-    for volunteer in volunteers:
-        writer.writerow([volunteer['userId'], volunteer['userName'], volunteer['emailAddress'], volunteer['firstName'], volunteer['lastName'], volunteer['gender'], volunteer['dateOfBirth']])
+    writer.writerow(['Event ID', 'Event name', 'Start datetime', 'End datetime', 'Min participants', 'Max participants', 'Category', 'Organizer', 'Description', 'Event status', '# participated'])
+
+    for eventID in eventIdList:
+        eventdetails = Event.objects.get(eventId__exact=eventID)
+        eventcategories = Eventcategory.objects.values_list('categoryId', flat=True).filter(eventId=eventID)
+        categories = [value for value in eventcategories]
+        eventvolunteersid = Eventregistration.objects.values_list('userId', flat=True).filter(eventId=eventID).filter(status='attended')
+
+        writer.writerow([eventID, eventdetails.eventName, eventdetails.startDateTime, eventdetails.endDateTime, eventdetails.minParticipants, eventdetails.maxParticipants, categories, eventdetails.organizerName, eventdetails.description, eventdetails.eventStatus, len(eventvolunteersid)])
 
     return response
+
+# def writecsv_events(eventid, eventdetails, categories, volunteers):
+#     response = HttpResponse(content_type='text/csv')
+#     response['Content-Disposition'] = 'attachment; filename="' + eventdetails.eventName + '.csv"'
+#
+#     writer = csv.writer(response)
+#
+#     writer.writerow(['Event ID: ' + eventid])
+#     writer.writerow(['Event name: ' + eventdetails.eventName])
+#     writer.writerow(['Event start datetime: ' + str(eventdetails.startDateTime)])
+#     writer.writerow(['Event end datetime: ' + str(eventdetails.endDateTime)])
+#     writer.writerow(['Number of participants required: ' + str(eventdetails.maxParticipants)])
+#     writer.writerow(['Organizer name: ' + eventdetails.organizerName])
+#     writer.writerow(['Category: ' + str(categories)])
+#     writer.writerow([ ])
+#     writer.writerow(['User ID', 'Username', 'Email address', 'First name', 'Last name', 'Gender', 'Date of birth'])
+#     for volunteer in volunteers:
+#         writer.writerow([volunteer['userId'], volunteer['userName'], volunteer['emailAddress'], volunteer['firstName'], volunteer['lastName'], volunteer['gender'], volunteer['dateOfBirth']])
+#
+#     return response
