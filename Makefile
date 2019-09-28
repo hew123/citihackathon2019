@@ -13,7 +13,7 @@ help:
 	@echo "        Runs application in dev mode."
 
 init:
-	@./scripts/init
+	@pip install -r requirements.txt
 
 clean-pyc:
 	@find . -name '*.pyc' -exec rm -f {} +
