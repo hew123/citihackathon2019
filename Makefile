@@ -1,12 +1,31 @@
-.
-HONY: clean-pyc
+.PHONY: clean-pyc
 
 help:
+	@echo "    init"
+	@echo "        Initializes project requirements"
+	@echo "    clean-pyc"
+	@echo "        Remove python artifacts."
+	@echo "    lint"
+	@echo "        Run lint script on application."
+	@echo "    test"
+	@echo "        Run pytest locally"
+	@echo "    start"
+	@echo "        Runs application in dev mode."
+
+init:
+	@pip install -r requirements.txt
+
+clean-pyc:
+	@find . -name '*.pyc' -exec rm -f {} +
+	@find . -name '*.pyo' -exec rm -f {} +
+	@find . -name '*~' -exec rm -f {} +
+	@find . -name '__pycache__' -exec rm -fr {} +
+
 lint:
-	@./scripts/dev/lint
+	@./scripts/lint
 
 test:
-	@./scripts/dev/test
+	@./scripts/test
 
-dev:
-	@./scripts/dev/dev
+start:
+	@./scripts/start
