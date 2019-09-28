@@ -4,7 +4,11 @@ from django.http import JsonResponse
 import json
 from .utils import get_volunteers_from_eventId
 from .utils import getEventById
+from .utils import convertDateTimes
+from .utils import convertDates
+from .utils import getEventById_DateTime
 
+import datetime
 
 # Create your views here.
 def demographic(request):
@@ -40,7 +44,7 @@ def organization(request):
     for id in eventIdList:
         temp = getEventById(id)
         events.append(temp)
-    data={
+    data = {
         "events":events
     }
     return JsonResponse(data)
@@ -49,7 +53,29 @@ def organization(request):
 def historical(request):
     fromdate = request.GET.get('fromDate', None)
     todate = request.GET.get('toDate', None)
-    pass
+    fromDate, toDate = convertDateTimes(fromdate,todate)
+    _fromDate, _toDate = convertDates(fromdate,todate)
+
+    if fromDate > toDate or (toDate-fromDate).days > 365:
+        return JsonResponse({"error":"change this later"})
+
+    eventIdList = Event.objects.values_list('eventId',flat=True).filter(startDateTime__lte= fromDate)
+    events=[]
+    totalHours = 0
+    for id in eventIdList:
+        temp = getEventById_DateTime(id)
+        events.append(temp)
+        totalHours += temp["numHours"]
+
+    data = {
+    "numEvents": len(events),
+    "totalHours":totalHours,
+    "fromDate":_fromDate,
+    "toDate":_toDate,
+    "events": events
+             }
+
+    return JsonResponse(data)
 
 def user_historical(request):
     userid = request.GET.get('userId', None)
