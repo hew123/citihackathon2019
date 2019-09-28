@@ -1,0 +1,2 @@
+cd src/reporter
+python manage.py runserver
