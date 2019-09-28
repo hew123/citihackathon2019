@@ -11,7 +11,7 @@ from django.db import models
 
 
 class Category(models.Model):
-    id = models.IntegerField(primary_key=True)
+    categoryId = models.IntegerField(db_column='id',primary_key=True)
     categoryName = models.CharField(db_column='categoryName', max_length=64, blank=True, null=True)  # Field name made lowercase.
     createdTime = models.DateTimeField(db_column='createdTime', blank=True, null=True)  # Field name made lowercase.
     updatedTime = models.DateTimeField(db_column='updatedTime', blank=True, null=True)  # Field name made lowercase.
@@ -22,7 +22,7 @@ class Category(models.Model):
 
 
 class Event(models.Model):
-    id = models.IntegerField(primary_key=True)
+    eventId = models.IntegerField(db_column='id',primary_key=True)
     eventName = models.CharField(db_column='eventName', max_length=255, blank=True, null=True)  # Field name made lowercase.
     startDateTime = models.DateTimeField(db_column='startDateTime', blank=True, null=True)  # Field name made lowercase.
     endDateTime = models.DateTimeField(db_column='endDateTime', blank=True, null=True)  # Field name made lowercase.

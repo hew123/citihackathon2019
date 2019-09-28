@@ -2,19 +2,18 @@ from django.shortcuts import render
 from .models import Event, User, Eventcategory, Eventregistration
 from django.http import JsonResponse
 import json
+from .utils import get_volunteers_from_eventId
+from .utils import getEventById
+
 
 # Create your views here.
 def demographic(request):
     eventId = request.GET.get('eventId', None)
-    eventdetails = Event.objects.get(id__exact=eventId)
+    eventdetails = Event.objects.get(eventId__exact=eventId)
     eventcategories = Eventcategory.objects.values_list('categoryId', flat=True).filter(eventId=eventId)
     eventvolunteersid = Eventregistration.objects.values_list('userId', flat=True).filter(eventId=eventId)
 
-    volunteers = []
-    for value in eventvolunteersid:
-        user = User.objects.get(userId__exact=value).__dict__
-        del user['_state']
-        volunteers.append(user)
+    volunteers = get_volunteers_from_eventId(eventId)
 
     categories = [value for value in eventcategories]
 
@@ -22,7 +21,7 @@ def demographic(request):
         pass #Return error
 
     data = {
-        "eventId": eventdetails.id,
+        "eventId": eventdetails.eventId,
         "eventName":eventdetails.eventName,
         "startDateTime":eventdetails.startDateTime,
         "endDateTime":eventdetails.endDateTime,
@@ -36,7 +35,16 @@ def demographic(request):
 
 def organization(request):
     organizerName = request.GET.get('organizerName', None)
-    pass
+    eventIdList = Event.objects.values_list('eventId',flat=True).filter(organizerName = organizerName)
+    events = []
+    for id in eventIdList:
+        temp = getEventById(id)
+        events.append(temp)
+    data={
+        "events":events
+    }
+    return JsonResponse(data)
+
 
 def historical(request):
     fromdate = request.GET.get('fromDate', None)
