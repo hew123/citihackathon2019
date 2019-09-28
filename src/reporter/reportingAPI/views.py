@@ -59,7 +59,7 @@ def historical(request):
     if fromDate > toDate or (toDate-fromDate).days > 365:
         return JsonResponse({"error":"change this later"})
 
-    eventIdList = Event.objects.values_list('eventId',flat=True).filter(startDateTime__lte= fromDate)
+    eventIdList = Event.objects.values_list('eventId',flat=True).filter(startDateTime__gte= fromDate)
     events=[]
     totalHours = 0
     for id in eventIdList:
