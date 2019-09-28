@@ -10,7 +10,7 @@ from .utils import getEventById_DateTime
 from datetime import datetime, date
 import datetime as _datetime
 from django.http import HttpResponse
-import csv, requests
+import csv
 
 # Create your views here.
 # Retrieve event details based on event id
@@ -18,30 +18,31 @@ def demographic(request):
     eventId = request.GET.get('eventId', None)
     return JsonResponse(demographic_support(eventId))
 
+
 def demographic_support(eventId):
     eventdetails = Event.objects.get(eventId__exact=eventId)
     eventcategories = Eventcategory.objects.values_list('categoryId', flat=True).filter(eventId=eventId)
-    # eventvolunteersid = Eventregistration.objects.values_list('userId', flat=True).filter(eventId=eventId).filter(status='attended')
 
     volunteers = get_volunteers_from_eventId(eventId)
 
     categories = [value for value in eventcategories]
 
     if eventId == None:
-        pass #Return error
+        pass
 
     data = {
         "eventId": eventdetails.eventId,
-        "eventName":eventdetails.eventName,
-        "startDateTime":eventdetails.startDateTime,
-        "endDateTime":eventdetails.endDateTime,
-        "numParticipants":len(volunteers),
-        "organizerName":eventdetails.organizerName,
-        "categoryId":categories,
-        "volunteers":volunteers,
+        "eventName": eventdetails.eventName,
+        "startDateTime": eventdetails.startDateTime,
+        "endDateTime": eventdetails.endDateTime,
+        "numParticipants": len(volunteers),
+        "organizerName": eventdetails.organizerName,
+        "categoryId": categories,
+        "volunteers": volunteers,
         "eventStatus": eventdetails.eventStatus
     }
     return data
+
 
 # Retrieve events based on organisation that organised it
 def organization(request):
@@ -52,9 +53,10 @@ def organization(request):
         temp = getEventById(id)
         events.append(temp)
     data = {
-        "events":events
+        "events": events
     }
     return JsonResponse(data)
+
 
 # Retrieval of historical event data from "fromDate" to "endDate"
 def historical(request):
@@ -76,13 +78,14 @@ def historical(request):
             fromDate = date.today() - _datetime.timedelta(days=365)
             toDate = datetime.combine(date.today(), datetime.max.time())
 
-    eventIdList = Event.objects.values_list('eventId',flat=True).filter(startDateTime__gte = fromDate).filter(endDateTime__lte = toDate)
+    eventIdList = Event.objects.values_list('eventId', flat=True).filter(startDateTime__gte=fromDate).filter(endDateTime__lte=toDate)
 
     events=[]
     for id in eventIdList:
         events.append(demographic_support(id))
 
     return JsonResponse({"events": events})
+
 
 #Retrieve events of all volunteers
 def user_historical(request):
@@ -129,6 +132,7 @@ def user_historical(request):
 
     return JsonResponse(data)
 
+
 def export_csv_single_event(request):
     eventid = request.GET.get('eventId', None)
     eventdetails = Event.objects.get(eventId__exact=eventid)
@@ -144,6 +148,7 @@ def export_csv_single_event(request):
     categories = [value for value in eventcategories]
 
     return writecsv_single_event(eventid, eventdetails, categories, volunteers)
+
 
 def writecsv_single_event(eventid, eventdetails, categories, volunteers):
     response = HttpResponse(content_type='text/csv')
@@ -164,6 +169,7 @@ def writecsv_single_event(eventid, eventdetails, categories, volunteers):
         writer.writerow([volunteer['userId'], volunteer['userName'], volunteer['emailAddress'], volunteer['firstName'], volunteer['lastName'], volunteer['gender'], volunteer['dateOfBirth']])
 
     return response
+
 
 def export_csv_events(request):
     fromdate = request.GET.get('fromDate', None)
@@ -209,22 +215,4 @@ def export_csv_events(request):
 
     return response
 
-# def writecsv_events(eventid, eventdetails, categories, volunteers):
-#     response = HttpResponse(content_type='text/csv')
-#     response['Content-Disposition'] = 'attachment; filename="' + eventdetails.eventName + '.csv"'
-#
-#     writer = csv.writer(response)
-#
-#     writer.writerow(['Event ID: ' + eventid])
-#     writer.writerow(['Event name: ' + eventdetails.eventName])
-#     writer.writerow(['Event start datetime: ' + str(eventdetails.startDateTime)])
-#     writer.writerow(['Event end datetime: ' + str(eventdetails.endDateTime)])
-#     writer.writerow(['Number of participants required: ' + str(eventdetails.maxParticipants)])
-#     writer.writerow(['Organizer name: ' + eventdetails.organizerName])
-#     writer.writerow(['Category: ' + str(categories)])
-#     writer.writerow([ ])
-#     writer.writerow(['User ID', 'Username', 'Email address', 'First name', 'Last name', 'Gender', 'Date of birth'])
-#     for volunteer in volunteers:
-#         writer.writerow([volunteer['userId'], volunteer['userName'], volunteer['emailAddress'], volunteer['firstName'], volunteer['lastName'], volunteer['gender'], volunteer['dateOfBirth']])
-#
-#     return response
+
