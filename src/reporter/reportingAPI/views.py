@@ -2,10 +2,9 @@ from django.shortcuts import render
 from .models import Event, User, Eventcategory, Eventregistration
 from django.http import JsonResponse
 import json
-from .utils import get_volunteers_from_eventId
+from .utils import get_volunteers_from_eventId, get_volunteers_event
 from .utils import getEventById
-from .utils import convertDateTimes
-from .utils import convertDates
+from .utils import convertDate
 from .utils import getEventById_DateTime
 
 from datetime import datetime, date
@@ -56,66 +55,74 @@ def organization(request):
 def historical(request):
     fromdate = request.GET.get('fromDate', None)
     todate = request.GET.get('toDate', None)
-    fromDate, toDate = convertDateTimes(fromdate,todate)
-    _fromDate, _toDate = convertDates(fromdate,todate)
+    fromDate, toDate = convertDate(fromdate,todate)
 
     if fromDate > toDate or (toDate-fromDate).days > 365:
         return JsonResponse({"error":"change this later"})
 
-    eventIdList1 = Event.objects.values_list('eventId',flat=True).filter(startDateTime__gte= fromDate)
-    eventIdList2 = Event.objects.values_list('eventId',flat=True).filter(startDateTime__lte= toDate)
-    eventIdList3 = []
-    for id in eventIdList1:
-        if id in eventIdList2:
-            eventIdList3.append(id)
+    eventIdList = Event.objects.values_list('eventId',flat=True).filter(startDateTime__gte = fromDate).filter(endDateTime__lte = toDate)
 
     events=[]
     totalHours = 0
-    for id in eventIdList3:
+    for id in eventIdList:
         temp = getEventById_DateTime(id)
         events.append(temp)
         totalHours += temp["numHours"]
 
-    data = {
-    "numEvents": len(events),
-    "totalHours":totalHours,
-    "fromDate":_fromDate,
-    "toDate":_toDate,
-    "events": events
-             }
+    # data = {
+    # "numEvents": len(events),
+    # "totalHours":totalHours,
+    # "fromDate":_fromDate,
+    # "toDate":_toDate,
+    # "events": events
+    #          }
 
-    return JsonResponse(data)
+    return JsonResponse({"events": events})
 
 #Retrieve events of all volunteers
 def user_historical(request):
     userid = request.GET.get('userId', None)
-    fromdate = request.GET.get('fromDate', None)
-    todate = request.GET.get('toDate', None)
+    _fromdate = request.GET.get('fromDate', None)
+    _todate = request.GET.get('toDate', None)
 
-    if fromdate:
-        if todate:
-            fromDate, toDate = convertDateTimes(fromdate,todate)
-            _fromDate, _toDate = convertDates(fromdate,todate)
+    if _fromdate:
+        if _todate:
+            fromDate, toDate = convertDate(_fromdate,_todate)
 
             if fromDate > toDate or (toDate-fromDate).days > 365:
                 return JsonResponse({"error":"change this later"})
         else:
             return JsonResponse({"error":"change this later"})
     else:
-        if todate:
+        if _todate:
             return JsonResponse({"error":"change this later"})
+        if not _todate:
+            return JsonResponse({
+                "numEvents": 0,
+                "totalHours": 0,
+                "fromDate": "",
+                "toDate": "",
+                "events": [],
+            })
         else:
-            # print('here')
             fromDate = date.today() - _datetime.timedelta(days=365)
             toDate = datetime.combine(date.today(), datetime.max.time())
 
-    # print(fromDate)
-    print('todate', toDate)
+    eventIdArray = Eventregistration.objects.values_list('eventId', flat=True).filter(userId=userid)
+    events = get_volunteers_event(eventIdArray, fromDate, toDate)
+    totalHours = 0
+    for e in events:
+        totalHours += e['numHours']
 
-    eventIdList = Event.objects.values_list('eventId',flat=True).filter(startDateTime__gte = fromDate)
-    print('new', eventIdList.filter(endDateTime__lte = toDate))
+    data = {
+        "numEvents": len(events),
+        "totalHours":totalHours,
+        "fromDate":_fromdate,
+        "toDate":_todate,
+        "events": events
+     }
 
-    return JsonResponse({'data': 'a'})
+    return JsonResponse(data)
 
 def export_csv_single_event(request):
     eventid = request.GET.get('eventId', None)

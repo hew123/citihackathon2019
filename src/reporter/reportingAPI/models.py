@@ -52,10 +52,9 @@ class Eventcategory(models.Model):
 class Eventregistration(models.Model):
     eventId = models.ForeignKey(Event, models.DO_NOTHING, db_column='eventId')  # Field name made lowercase.
     userId = models.ForeignKey('User', models.DO_NOTHING, db_column='userId', primary_key=True)  # Field name made lowercase.
-    attended = models.IntegerField(blank=True, null=True)
+    status = models.CharField(max_length=16, blank=True, null=True)
     createdTime = models.DateTimeField(db_column='createdTime', blank=True, null=True)  # Field name made lowercase.
     updatedTime = models.DateTimeField(db_column='updatedTime', blank=True, null=True)  # Field name made lowercase.
-    withdrawed = models.IntegerField(blank=True, null=True)
 
     class Meta:
         managed = False
