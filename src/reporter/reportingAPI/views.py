@@ -8,7 +8,8 @@ from .utils import convertDateTimes
 from .utils import convertDates
 from .utils import getEventById_DateTime
 
-import datetime
+from datetime import datetime, date
+import datetime as _datetime
 
 # Create your views here.
 # Retrieve event details based on event id
@@ -90,4 +91,30 @@ def user_historical(request):
     userid = request.GET.get('userId', None)
     fromdate = request.GET.get('fromDate', None)
     todate = request.GET.get('toDate', None)
-    pass
+
+    if fromdate:
+        if todate:
+            fromDate, toDate = convertDateTimes(fromdate,todate)
+            _fromDate, _toDate = convertDates(fromdate,todate)
+
+            if fromDate > toDate or (toDate-fromDate).days > 365:
+                return JsonResponse({"error":"change this later"})
+        else:
+            return JsonResponse({"error":"change this later"})
+    else:
+        if todate:
+            return JsonResponse({"error":"change this later"})
+        else:
+            # print('here')
+            fromDate = date.today() - _datetime.timedelta(days=365)
+            toDate = datetime.combine(date.today(), datetime.max.time())
+
+    # print(fromDate)
+    print('todate', toDate)
+
+    eventIdList = Event.objects.values_list('eventId',flat=True).filter(startDateTime__gte = fromDate)
+    print('new', eventIdList.filter(endDateTime__lte = toDate))
+
+
+
+    return JsonResponse({'data': 'a'})
