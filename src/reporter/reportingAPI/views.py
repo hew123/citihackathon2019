@@ -5,32 +5,32 @@ import json
 
 # Create your views here.
 def demographic(request):
-    eventid = request.GET.get('eventId', None)
-    eventdetails = Event.objects.get(id__exact=eventid)
-    eventcategories = Eventcategory.objects.values_list('categoryid', flat=True).filter(eventid=eventid)
-    eventvolunteersid = Eventregistration.objects.values_list('userid', flat=True).filter(eventid=eventid)
+    eventId = request.GET.get('eventId', None)
+    eventdetails = Event.objects.get(id__exact=eventId)
+    eventcategories = Eventcategory.objects.values_list('categoryId', flat=True).filter(eventId=eventId)
+    eventvolunteersid = Eventregistration.objects.values_list('userId', flat=True).filter(eventId=eventId)
 
     volunteers = []
     for value in eventvolunteersid:
-        user = User.objects.get(id__exact=value).__dict__
+        user = User.objects.get(userId__exact=value).__dict__
         del user['_state']
         volunteers.append(user)
 
     categories = [value for value in eventcategories]
 
-    if eventid == None:
+    if eventId == None:
         pass #Return error
 
     data = {
         "eventId": eventdetails.id,
-        "eventName":eventdetails.eventname,
-        "startDateTime":eventdetails.startdatetime,
-        "endDateTime":eventdetails.enddatetime,
-        "numParticipants":eventdetails.maxparticipants,
-        "organizerName":eventdetails.organizername,
+        "eventName":eventdetails.eventName,
+        "startDateTime":eventdetails.startDateTime,
+        "endDateTime":eventdetails.endDateTime,
+        "numParticipants":eventdetails.maxParticipants,
+        "organizerName":eventdetails.organizerName,
         "categoryId":categories,
         "volunteers":volunteers,
-        "eventStatus": eventdetails.eventstatus
+        "eventStatus": eventdetails.eventStatus
     }
     return JsonResponse(data)
 
