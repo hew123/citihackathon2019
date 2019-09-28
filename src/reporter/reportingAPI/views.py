@@ -51,7 +51,7 @@ def organization(request):
     }
     return JsonResponse(data)
 
-# Retrieval historical data from "fromDate" to "endDate"
+# Retrieval of historical event data from "fromDate" to "endDate"
 def historical(request):
     fromdate = request.GET.get('fromDate', None)
     todate = request.GET.get('toDate', None)
