@@ -11,6 +11,7 @@ from .utils import getEventById_DateTime
 import datetime
 
 # Create your views here.
+# Retrieve event details based on event id
 def demographic(request):
     eventId = request.GET.get('eventId', None)
     eventdetails = Event.objects.get(eventId__exact=eventId)
@@ -37,6 +38,7 @@ def demographic(request):
     }
     return JsonResponse(data)
 
+# Retrieve events based on organisation that organised it
 def organization(request):
     organizerName = request.GET.get('organizerName', None)
     eventIdList = Event.objects.values_list('eventId',flat=True).filter(organizerName = organizerName)
@@ -49,7 +51,7 @@ def organization(request):
     }
     return JsonResponse(data)
 
-
+# Retrieval of historical event data from "fromDate" to "endDate"
 def historical(request):
     fromdate = request.GET.get('fromDate', None)
     todate = request.GET.get('toDate', None)
@@ -77,6 +79,7 @@ def historical(request):
 
     return JsonResponse(data)
 
+#Retrieve events of all volunteers
 def user_historical(request):
     userid = request.GET.get('userId', None)
     fromdate = request.GET.get('fromDate', None)
