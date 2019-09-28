@@ -115,6 +115,83 @@ def user_historical(request):
     eventIdList = Event.objects.values_list('eventId',flat=True).filter(startDateTime__gte = fromDate)
     print('new', eventIdList.filter(endDateTime__lte = toDate))
 
-
-
     return JsonResponse({'data': 'a'})
+
+def export_csv_single_event(request):
+    eventid = request.GET.get('eventId', None)
+    eventdetails = Event.objects.get(id__exact=eventid)
+    eventcategories = Eventcategory.objects.values_list('categoryId', flat=True).filter(eventId=eventid)
+    eventvolunteersid = Eventregistration.objects.values_list('userId', flat=True).filter(eventId=eventid)
+
+    volunteers = []
+    for value in eventvolunteersid:
+        user = User.objects.values('userId', 'userName', 'emailAddress', 'firstName', 'lastName', 'gender', 'dateOfBirth', 'accountType').get(userId__exact=value)
+        print(user)# del user['_state']
+        volunteers.append(user)
+
+    categories = [value for value in eventcategories]
+
+    return writecsv_single_event(eventid, eventdetails, categories, volunteers)
+
+def writecsv_single_event(eventid, eventdetails, categories, volunteers):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="' + eventdetails.eventName + '.csv"'
+
+    writer = csv.writer(response)
+
+    writer.writerow(['Event ID: ' + eventid])
+    writer.writerow(['Event name: ' + eventdetails.eventName])
+    writer.writerow(['Event start datetime: ' + str(eventdetails.startDateTime)])
+    writer.writerow(['Event end datetime: ' + str(eventdetails.endDateTime)])
+    writer.writerow(['Number of participants required: ' + str(eventdetails.maxParticipants)])
+    writer.writerow(['Organizer name: ' + eventdetails.organizerName])
+    writer.writerow(['Category: ' + str(categories)])
+    writer.writerow([ ])
+    writer.writerow(['User ID', 'Username', 'Email address', 'First name', 'Last name', 'Gender', 'Date of birth'])
+    for volunteer in volunteers:
+        writer.writerow([volunteer['userId'], volunteer['userName'], volunteer['emailAddress'], volunteer['firstName'], volunteer['lastName'], volunteer['gender'], volunteer['dateOfBirth']])
+
+    return response
+
+def export_csv_events(request):
+    fromDate = request.GET.get('fromDate', None)
+    toDate = request.GET.get('toDate', None)
+    fromDate, toDate = convertDateTimes(fromdate,todate)
+    _fromDate, _toDate = convertDates(fromdate,todate)
+
+    if fromDate > toDate or (toDate-fromDate).days > 365:
+        return JsonResponse({"error":"change this later"})
+
+    eventdetails = Event.objects.get(id__exact=eventid)
+    eventcategories = Eventcategory.objects.values_list('categoryId', flat=True).filter(eventId=eventid)
+    eventvolunteersid = Eventregistration.objects.values_list('userId', flat=True).filter(eventId=eventid)
+
+    volunteers = []
+    for value in eventvolunteersid:
+        user = User.objects.values('userId', 'userName', 'emailAddress', 'firstName', 'lastName', 'gender', 'dateOfBirth', 'accountType').get(userId__exact=value)
+        print(user)# del user['_state']
+        volunteers.append(user)
+
+    categories = [value for value in eventcategories]
+
+    return writecsv(eventid, eventdetails, categories, volunteers)
+
+def writecsv(eventid, eventdetails, categories, volunteers):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="' + eventdetails.eventName + '.csv"'
+
+    writer = csv.writer(response)
+
+    writer.writerow(['Event ID: ' + eventid])
+    writer.writerow(['Event name: ' + eventdetails.eventName])
+    writer.writerow(['Event start datetime: ' + str(eventdetails.startDateTime)])
+    writer.writerow(['Event end datetime: ' + str(eventdetails.endDateTime)])
+    writer.writerow(['Number of participants required: ' + str(eventdetails.maxParticipants)])
+    writer.writerow(['Organizer name: ' + eventdetails.organizerName])
+    writer.writerow(['Category: ' + str(categories)])
+    writer.writerow([ ])
+    writer.writerow(['User ID', 'Username', 'Email address', 'First name', 'Last name', 'Gender', 'Date of birth'])
+    for volunteer in volunteers:
+        writer.writerow([volunteer['userId'], volunteer['userName'], volunteer['emailAddress'], volunteer['firstName'], volunteer['lastName'], volunteer['gender'], volunteer['dateOfBirth']])
+
+    return response
