@@ -1,22 +1,35 @@
-from django.shortcuts import render
 from .models import Event, User, Eventcategory, Eventregistration
 from django.http import JsonResponse
-import json
-from .utils import get_volunteers_from_eventId, get_volunteers_event
-from .utils import getEventById
-from .utils import convertDate
-from .utils import getEventById_DateTime
+from .utils import get_volunteers_from_eventId, get_volunteers_event, getEventById, \
+    convertDate, is_simple_valid_date
 
 from datetime import datetime, date
 import datetime as _datetime
 from django.http import HttpResponse
+from django.core.exceptions import ObjectDoesNotExist
+from rest_framework import status
+
 import csv
 
 # Create your views here.
 # Retrieve event details based on event id
 def demographic(request):
     eventId = request.GET.get('eventId', None)
-    return JsonResponse(demographic_support(eventId))
+    try:
+        eventId = request.GET.get('eventId', None)
+        if int(eventId) < 1:
+            data = {"error": f"eventId: `{eventId}` should be greater than `0`"}
+            return JsonResponse(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except ValueError:
+        data = {
+            "error": f"eventId: `{eventId}` should be of type `<class 'int'>` not {type(eventId)}"}
+        return JsonResponse(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    try:
+        data = demographic_support(eventId)
+    except ObjectDoesNotExist:
+        data = {"error": f"`eventId` of {eventId} is not found in db"}
+        return JsonResponse(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return JsonResponse(data)
 
 
 def demographic_support(eventId):
@@ -26,9 +39,6 @@ def demographic_support(eventId):
     volunteers = get_volunteers_from_eventId(eventId)
 
     categories = [value for value in eventcategories]
-
-    if eventId == None:
-        pass
 
     data = {
         "eventId": eventdetails.eventId,
@@ -47,11 +57,12 @@ def demographic_support(eventId):
 # Retrieve events based on organisation that organised it
 def organization(request):
     organizerName = request.GET.get('organizerName', None)
-    eventIdList = Event.objects.values_list('eventId',flat=True).filter(organizerName = organizerName)
-    events = []
-    for id in eventIdList:
-        temp = getEventById(id)
-        events.append(temp)
+    try:
+        eventIdList = Event.objects.values_list('eventId', flat=True).filter(organizerName=organizerName)
+    except ObjectDoesNotExist:
+        data = {"error": f"`eventId` of {organizerName} is not found in db"}
+        return JsonResponse(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    events = [getEventById(id) for id in eventIdList]
     data = {
         "events": events
     }
@@ -62,19 +73,25 @@ def organization(request):
 def historical(request):
     fromdate = request.GET.get('fromDate', None)
     todate = request.GET.get('toDate', None)
+
+    if fromdate and not is_simple_valid_date(fromdate):
+        return JsonResponse({"error": "fromDate should be in the format of `YYYY-MM-DD`"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    if todate and not is_simple_valid_date(todate):
+        return JsonResponse({"error": "toDate should be in the format of `YYYY-MM-DD`"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     if fromdate:
         if todate:
-            fromDate, toDate = convertDate(fromdate,todate)
+            fromDate, toDate = convertDate(fromdate, todate)
 
-            if fromDate > toDate: #or (toDate-fromDate).days > 365:
-                return JsonResponse({"error":"change this later"})
+            if fromDate > toDate:
+                return JsonResponse({"error": "fromDate must be later than toDate"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
-            return JsonResponse({"error":"change this later"})
+            return JsonResponse({"error": "toDate should not be empty"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     else:
         if todate:
-            return JsonResponse({"error":"change this later"})
+            return JsonResponse({"error": "fromDate should not be empty"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
-            # print('here')
             fromDate = date.today() - _datetime.timedelta(days=365)
             toDate = datetime.combine(date.today(), datetime.max.time())
 
@@ -93,17 +110,25 @@ def user_historical(request):
     _fromdate = request.GET.get('fromDate', None)
     _todate = request.GET.get('toDate', None)
 
+    if _fromdate and not is_simple_valid_date(_fromdate):
+        return JsonResponse({"error": "fromDate should be in the format of `YYYY-MM-DD`"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    if _todate and not is_simple_valid_date(_todate):
+        return JsonResponse({"error": "toDate should be in the format of `YYYY-MM-DD`"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     if _fromdate:
         if _todate:
             fromDate, toDate = convertDate(_fromdate,_todate)
 
-            if fromDate > toDate or (toDate-fromDate).days > 365:
-                return JsonResponse({"error":"change this later"})
+            if fromDate > toDate:
+                return JsonResponse({"error": "fromDate must be later than toDate"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            if (toDate-fromDate).days > 365:
+                return JsonResponse({"error": "The range of the date should be lesser than 1 year"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
-            return JsonResponse({"error":"change this later"})
+            return JsonResponse({"error": "toDate should not be empty"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     else:
         if _todate:
-            return JsonResponse({"error":"change this later"})
+            return JsonResponse({"error": "fromDate should not be empty"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         if not _todate:
             return JsonResponse({
                 "numEvents": 0,
@@ -142,7 +167,6 @@ def export_csv_single_event(request):
     volunteers = []
     for value in eventvolunteersid:
         user = User.objects.values('userId', 'userName', 'emailAddress', 'firstName', 'lastName', 'gender', 'dateOfBirth', 'accountType').get(userId__exact=value)
-        # print(user)# del user['_state']
         volunteers.append(user)
 
     categories = [value for value in eventcategories]
@@ -175,24 +199,30 @@ def export_csv_events(request):
     fromdate = request.GET.get('fromDate', None)
     todate = request.GET.get('toDate', None)
 
+    if fromdate and not is_simple_valid_date(fromdate):
+        return JsonResponse({"error": "fromDate should be in the format of `YYYY-MM-DD`"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    if todate and not is_simple_valid_date(todate):
+        return JsonResponse({"error": "toDate should be in the format of `YYYY-MM-DD`"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     if fromdate:
         if todate:
             fromDate, toDate = convertDate(fromdate,todate)
-
-            if fromDate > toDate or (toDate-fromDate).days > 365:
-                return JsonResponse({"error":"change this later"})
+            if fromDate > toDate:
+                return JsonResponse({"error": "fromDate must be later than toDate"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            if (toDate-fromDate).days > 365:
+                return JsonResponse({"error": "The range of the date should be lesser than 1 year"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
-            return JsonResponse({"error":"change this later"})
+            return JsonResponse({"error": "toDate should not be empty"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     else:
         if todate:
-            return JsonResponse({"error":"change this later"})
+            return JsonResponse({"error": "fromDate should not be empty"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
-            # print('here')
             fromDate = date.today() - _datetime.timedelta(days=365)
             _toDate = date.today()
             toDate = datetime.combine(_toDate, datetime.max.time())
 
-    eventIdList = Event.objects.values_list('eventId', flat=True).filter(startDateTime__gte = fromDate).filter(endDateTime__lte = toDate)
+    eventIdList = Event.objects.values_list('eventId', flat=True).filter(startDateTime__gte=fromDate).filter(endDateTime__lte=toDate)
 
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="EventSummary.csv"'
