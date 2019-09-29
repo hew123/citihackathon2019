@@ -59,9 +59,11 @@ def demographic_support(eventId):
 # Retrieve events based on organisation that organised it
 def organization(request):
     organizerName = request.GET.get('organizerName', None)
-    try:
-        eventIdList = Event.objects.values_list('eventId', flat=True).filter(organizerName=organizerName)
-    except ObjectDoesNotExist:
+    if not organizerName:
+        data = {"error": f"organizerName query parameter missing"}
+        return JsonResponse(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    eventIdList = Event.objects.values_list('eventId', flat=True).filter(organizerName=organizerName)
+    if len(eventIdList) == 0:
         data = {"error": f"`eventId` of {organizerName} is not found in db"}
         return JsonResponse(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     events = [getEventById(id) for id in eventIdList]
