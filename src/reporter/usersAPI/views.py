@@ -153,7 +153,7 @@ def reset_password(request):
 @csrf_exempt
 def display_all(request):
     if request.method == "GET":
-        userId = request.GET.get('userId', None)
-        user = User.objects.all()
-        print(user)
-        return JsonResponse(user)
+        users = User.objects.values('userId', 'username', 'password', 'accountType', 'emailAddress', 'firstName', 'lastName', 'gender', 'dateOfBirth').all()
+        # volunteers = []
+
+        return JsonResponse({'users':[volunteer for volunteer in users]})
