@@ -5,8 +5,11 @@ import json
 from datetime import datetime, date
 
 
+
 @csrf_exempt
 def accounts_details(request):
+    print(request)
+    print(request.method)
     if request.method == "GET":
         userId = request.GET.get('userId', None)
         user = User.objects.values('userId', 'username', 'password', 'accountType', 'emailAddress', 'firstName', 'lastName', 'gender', 'dateOfBirth').get(userId__exact=userId)
@@ -28,10 +31,30 @@ def accounts_details(request):
             firstName = body_data['firstName'],
             lastName = body_data['lastName'],
             gender = body_data['gender'],
-            dateOfBirth = dateOfBirth
+            dateOfBirth = dateOfBirth,
         )
         createdUser = User.objects.values('userId', 'username', 'password', 'accountType', 'emailAddress', 'firstName', 'lastName', 'gender', 'dateOfBirth').get(emailAddress__exact=body_data['emailAddress'])
         return JsonResponse(createdUser)
+
+    if request.method =="DEL":
+        print('helclo')
+        userId = request.GET.get('userId', None)
+        #print(User.objects.filter(userId=userId))
+        user = User.objects.filter(userId=userId)
+        user.status = 'deleted'
+        #user.update(status="deleted")
+        user.save()
+        print('hello')
+
+    def delete(self, request):
+    # delete an object and send a confirmation response
+    .objects.get(pk=request.DELETE['pk']).delete()
+    return HttpResponse()
+
+
+
+
+
 
 # # for API
 # from rest_framework import generics, permissions
@@ -125,5 +148,14 @@ def reset_password(request):
     if request.method == "GET":
         userId = request.GET.get('userId', None)
         user = User.objects.values('username', 'emailAddress').get(userId__exact=userId)
+        print(user)
+        return JsonResponse(user)
+
+
+@csrf_exempt
+def display_all(request):
+    if request.method == "GET":
+        userId = request.GET.get('userId', None)
+        user = User.objects.all()
         print(user)
         return JsonResponse(user)
