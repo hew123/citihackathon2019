@@ -117,33 +117,7 @@ def accounts_details(request):
 #         'users': reverse('user-list', request=request, format=format),
 #     })
 
-@csrf_exempt
-def accounts_details(request):
-    if request.method == "GET":
-        userId = request.GET.get('userId', None)
-        user = User.objects.values('username', 'password', 'accountType', 'emailAddress', 'firstName', 'lastName', 'gender', 'dateOfBirth').get(userId__exact=userId)
-        print(user)
-        return JsonResponse(user)
 
-    if request.method == "POST":
-        body_unicode = request.body.decode('utf-8')
-        body_data = json.loads(body_unicode)
-        print(body_data)
-        dateofbirth = body_data['dateOfBirth']
-        datearr = dateofbirth.split('-')
-        dateOfBirth = date(int(datearr[0]), int(datearr[1]), int(datearr[2]))
-        user = User.objects.create(
-            username = body_data['username'],
-            password = body_data['password'],
-            accountType = body_data['accountType'],
-            emailAddress = body_data['emailAddress'],
-            firstName = body_data['firstName'],
-            lastName = body_data['lastName'],
-            gender = body_data['gender'],
-            dateOfBirth = dateOfBirth
-        )
-        createdUser = User.objects.values('userId', 'username', 'password', 'accountType', 'emailAddress', 'firstName', 'lastName', 'gender', 'dateOfBirth').get(emailAddress__exact=body_data['emailAddress'])
-        return JsonResponse(createdUser)
 
 
 @csrf_exempt
