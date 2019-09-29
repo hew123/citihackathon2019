@@ -86,7 +86,7 @@ class User(models.Model):
     gender = models.CharField(max_length=6, blank=True, null=True)
     dateOfBirth = models.DateField(db_column='dateOfBirth', blank=True, null=True)  # Field name made lowercase.
     # clientSecret = models.CharField(db_column='clientSecret', max_length=255, blank=True, null=True)  # Field name made lowercase.
-    # twoFactorEnabled = models.IntegerField(db_column='twoFactorEnabled', blank=True, null=True)  # Field name made lowercase.
+    twoFactorEnabled = models.IntegerField(db_column='twoFactorEnabled', blank=True, null=True)  # Field name made lowercase.
     verified = models.IntegerField(blank=True, null=True)
     createdDateTime = models.DateTimeField(db_column='createdDateTime', blank=True, null=True)  # Field name made lowercase.
     updatedDateTime = models.DateTimeField(db_column='updatedDateTime', blank=True, null=True)  # Field name made lowercase.
