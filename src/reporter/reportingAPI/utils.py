@@ -83,18 +83,16 @@ def getEventById_DateTime(eventId):
     return data
 
 
-def convertDate(fromdate, todate):
+def convertDate(fromdate):
     fromDateArray = (fromdate.split('-'))
     dateA = datetime.datetime(int(fromDateArray[0]),int(fromDateArray[1]),int(fromDateArray[2]))
-    toDateArray = (todate.split('-'))
-    dateB = datetime.datetime(int(toDateArray[0]),int(toDateArray[1]),int(toDateArray[2]))
-    return(dateA,dateB)
+    #toDateArray = (todate.split('-'))
+    #dateB = datetime.datetime(int(toDateArray[0]),int(toDateArray[1]),int(toDateArray[2]))
+    #return(dateA,dateB)
+    return(dateA)
 
 
 def is_simple_valid_date(date):
     # simple validation
     isValid = re.match("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", date)
     return isValid
-
-
-
