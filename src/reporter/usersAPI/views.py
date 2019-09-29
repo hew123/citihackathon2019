@@ -24,6 +24,7 @@ def accounts_details(request):
         dateofbirth = body_data['dateOfBirth']
         datearr = dateofbirth.split('-')
         dateOfBirth = date(int(datearr[0]), int(datearr[1]), int(datearr[2]))
+
         user = User.objects.create(
             username = body_data['username'],
             password = body_data['password'],
@@ -33,12 +34,12 @@ def accounts_details(request):
             lastName = body_data['lastName'],
             gender = body_data['gender'],
             dateOfBirth = dateOfBirth,
+            status = "status"
         )
         createdUser = User.objects.values('userId', 'username', 'password', 'accountType', 'emailAddress', 'firstName', 'lastName', 'gender', 'dateOfBirth').get(emailAddress__exact=body_data['emailAddress'])
         return JsonResponse(createdUser)
 
     if request.method =="DEL":
-        print('helclo')
         userId = request.GET.get('userId', None)
         #print(User.objects.filter(userId=userId))
         user = User.objects.filter(userId=userId)
@@ -137,8 +138,6 @@ def accounts_details(request):
 #     return Response({
 #         'users': reverse('user-list', request=request, format=format),
 #     })
-
-
 
 
 @csrf_exempt
