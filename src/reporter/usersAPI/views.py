@@ -8,6 +8,7 @@ from datetime import datetime, date
 
 @csrf_exempt
 def accounts_details(request):
+    print(request.META)
     print(request)
     print(request.method)
     if request.method == "GET":
@@ -46,10 +47,7 @@ def accounts_details(request):
         user.save()
         print('hello')
 
-    def delete(self, request):
-    # delete an object and send a confirmation response
-    .objects.get(pk=request.DELETE['pk']).delete()
-    return HttpResponse()
+
 
 
 
