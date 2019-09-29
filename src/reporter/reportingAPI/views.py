@@ -85,20 +85,40 @@ def historical(request):
     if fromdate:
         if todate:
             try:
-                fromDate, toDate = convertDate(fromdate, todate)
+                fromDate, toDate = convertDate(fromdate), convertDate(todate)
             except ValueError as e:
                 return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            if fromDate > datetime.now() or toDate > datetime.now():
+                return JsonResponse({"error": "dates cannot be later than today's date"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             if fromDate > toDate:
                 return JsonResponse({"error": "fromDate must be earlier than toDate"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
-            return JsonResponse({"error": "toDate should not be empty"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            try:
+                #when todate is empty, set todate to today's date
+                toDate = datetime.combine(date.today(), datetime.max.time())
+                fromDate = convertDate(fromdate)
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            if fromDate > toDate:
+                return JsonResponse({"error": "dates cannot be later than today's date"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     else:
         if todate:
-            return JsonResponse({"error": "fromDate should not be empty"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            try:
+                #when fromdate is empty, set fromdate to start of time
+                toDate = convertDate(todate)
+                fromDate = convertDate("1000-01-01")
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
-            fromDate = date.today() - _datetime.timedelta(days=365)
-            toDate = datetime.combine(date.today(), datetime.max.time())
+            try:
+                #fromDate = date.today() - _datetime.timedelta(days=365)
+                fromDate = convertDate("1000-01-01")
+                toDate = datetime.combine(date.today(), datetime.max.time())
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     eventIdList = Event.objects.values_list('eventId', flat=True).filter(startDateTime__gte=fromDate).filter(endDateTime__lte=toDate)
 
@@ -124,30 +144,44 @@ def user_historical(request):
     if _fromdate:
         if _todate:
             try:
-                fromDate, toDate = convertDate(_fromdate, _todate)
+                fromDate, toDate = convertDate(_fromdate), convertDate(_todate)
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            if fromDate > datetime.now() or toDate > datetime.now():
+                return JsonResponse({"error": "dates cannot be later than today's date"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            if fromDate > toDate:
+                return JsonResponse({"error": "fromDate must be earlier than toDate"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:
+            try:
+                #when todate is empty, set todate to today's date
+                toDate = datetime.combine(date.today(), datetime.max.time())
+                fromDate = convertDate(_fromdate)
             except ValueError as e:
                 return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             if fromDate > toDate:
-                return JsonResponse({"error": "fromDate must be earlier than toDate"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            if (toDate-fromDate).days > 365:
-                return JsonResponse({"error": "The range of the date should be lesser than 1 year"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        else:
-            return JsonResponse({"error": "toDate should not be empty"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return JsonResponse({"error": "dates cannot be later than today's date"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     else:
         if _todate:
-            return JsonResponse({"error": "fromDate should not be empty"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        if not _todate:
-            return JsonResponse({
-                "numEvents": 0,
-                "totalHours": 0,
-                "fromDate": "",
-                "toDate": "",
-                "events": [],
-            })
+            try:
+                #when fromdate is empty, set fromdate to start of time
+                toDate = convertDate(_todate)
+                fromDate = convertDate("1000-01-01")
+                if toDate > datetime.now():
+                    return JsonResponse({"error": "dates cannot be later than today's date"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
-            fromDate = date.today() - _datetime.timedelta(days=365)
-            toDate = datetime.combine(date.today(), datetime.max.time())
+            try:
+                #fromDate = date.today() - _datetime.timedelta(days=365)
+                fromDate = convertDate("1000-01-01")
+                toDate = datetime.combine(date.today(), datetime.max.time())
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     eventIdArray = Eventregistration.objects.values_list('eventId', flat=True).filter(userId=userid)
     events = get_volunteers_event(eventIdArray, fromDate, toDate)
@@ -255,5 +289,3 @@ def export_csv_events(request):
         writer.writerow([eventID, eventdetails.eventName, eventdetails.startDateTime, eventdetails.endDateTime, eventdetails.minParticipants, eventdetails.maxParticipants, categories, eventdetails.organizerName, eventdetails.description, eventdetails.eventStatus, len(eventvolunteersid)])
 
     return response
-
-
