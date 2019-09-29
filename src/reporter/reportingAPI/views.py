@@ -59,9 +59,11 @@ def demographic_support(eventId):
 # Retrieve events based on organisation that organised it
 def organization(request):
     organizerName = request.GET.get('organizerName', None)
-    try:
-        eventIdList = Event.objects.values_list('eventId', flat=True).filter(organizerName=organizerName)
-    except ObjectDoesNotExist:
+    if not organizerName:
+        data = {"error": f"organizerName query parameter missing"}
+        return JsonResponse(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    eventIdList = Event.objects.values_list('eventId', flat=True).filter(organizerName=organizerName)
+    if len(eventIdList) == 0:
         data = {"error": f"`eventId` of {organizerName} is not found in db"}
         return JsonResponse(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     events = [getEventById(id) for id in eventIdList]
@@ -208,7 +210,7 @@ def export_csv_single_event(request):
 
     volunteers = []
     for value in eventvolunteersid:
-        user = User.objects.values('userId', 'userName', 'emailAddress', 'firstName', 'lastName', 'gender', 'dateOfBirth', 'accountType').get(userId__exact=value)
+        user = User.objects.values('userId', 'username', 'emailAddress', 'firstName', 'lastName', 'gender', 'dateOfBirth', 'accountType').get(userId__exact=value)
         volunteers.append(user)
 
     categories = [value for value in eventcategories]
@@ -232,7 +234,7 @@ def writecsv_single_event(eventid, eventdetails, categories, volunteers):
     writer.writerow([ ])
     writer.writerow(['User ID', 'Username', 'Email address', 'First name', 'Last name', 'Gender', 'Date of birth'])
     for volunteer in volunteers:
-        writer.writerow([volunteer['userId'], volunteer['userName'], volunteer['emailAddress'], volunteer['firstName'], volunteer['lastName'], volunteer['gender'], volunteer['dateOfBirth']])
+        writer.writerow([volunteer['userId'], volunteer['username'], volunteer['emailAddress'], volunteer['firstName'], volunteer['lastName'], volunteer['gender'], volunteer['dateOfBirth']])
 
     return response
 

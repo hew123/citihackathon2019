@@ -77,7 +77,7 @@ class Feedback(models.Model):
 
 class User(models.Model):
     userId = models.IntegerField(db_column='id',primary_key=True)
-    userName = models.CharField(db_column='username',unique=True, max_length=50, blank=True, null=True)
+    username = models.CharField(db_column='username',unique=True, max_length=50, blank=True, null=True)
     password = models.CharField(max_length=255, blank=True, null=True)
     accountType = models.CharField(db_column='accountType', max_length=10, blank=True, null=True)  # Field name made lowercase.
     emailAddress = models.CharField(db_column='emailAddress', unique=True, max_length=255, blank=True, null=True)  # Field name made lowercase.
