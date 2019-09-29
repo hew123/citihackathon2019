@@ -176,7 +176,7 @@ def export_csv_single_event(request):
 
     volunteers = []
     for value in eventvolunteersid:
-        user = User.objects.values('userId', 'userName', 'emailAddress', 'firstName', 'lastName', 'gender', 'dateOfBirth', 'accountType').get(userId__exact=value)
+        user = User.objects.values('userId', 'username', 'emailAddress', 'firstName', 'lastName', 'gender', 'dateOfBirth', 'accountType').get(userId__exact=value)
         volunteers.append(user)
 
     categories = [value for value in eventcategories]
@@ -200,7 +200,7 @@ def writecsv_single_event(eventid, eventdetails, categories, volunteers):
     writer.writerow([ ])
     writer.writerow(['User ID', 'Username', 'Email address', 'First name', 'Last name', 'Gender', 'Date of birth'])
     for volunteer in volunteers:
-        writer.writerow([volunteer['userId'], volunteer['userName'], volunteer['emailAddress'], volunteer['firstName'], volunteer['lastName'], volunteer['gender'], volunteer['dateOfBirth']])
+        writer.writerow([volunteer['userId'], volunteer['username'], volunteer['emailAddress'], volunteer['firstName'], volunteer['lastName'], volunteer['gender'], volunteer['dateOfBirth']])
 
     return response
 
