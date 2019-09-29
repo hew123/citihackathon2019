@@ -271,22 +271,41 @@ def export_csv_events(request):
     if fromdate:
         if todate:
             try:
-                fromDate, toDate = convertDate(fromdate, todate)
+                fromDate, toDate = convertDate(fromdate),convertDate(todate)
             except ValueError as e:
                 return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             if fromDate > toDate:
                 return JsonResponse({"error": "fromDate must be earlier than toDate"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            if (toDate-fromDate).days > 365:
-                return JsonResponse({"error": "The range of the date should be lesser than 1 year"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            if fromDate > datetime.now() or toDate > datetime.now():
+                return JsonResponse({"error": "dates cannot be later than today's date"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         else:
-            return JsonResponse({"error": "toDate should not be empty"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            try:
+                #when todate is empty, set todate to today's date
+                toDate = datetime.combine(date.today(), datetime.max.time())
+                fromDate = convertDate(fromdate)
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            if fromDate > toDate:
+                return JsonResponse({"error": "dates cannot be later than today's date"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     else:
         if todate:
-            return JsonResponse({"error": "fromDate should not be empty"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            try:
+                #when fromdate is empty, set fromdate to start of time
+                toDate = convertDate(todate)
+                fromDate = convertDate("1000-01-01")
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
-            fromDate = date.today() - _datetime.timedelta(days=365)
-            _toDate = date.today()
-            toDate = datetime.combine(_toDate, datetime.max.time())
+            try:
+                #fromDate = date.today() - _datetime.timedelta(days=365)
+                fromDate = convertDate("1000-01-01")
+                toDate = datetime.combine(date.today(), datetime.max.time())
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     eventIdList = Event.objects.values_list('eventId', flat=True).filter(startDateTime__gte=fromDate).filter(endDateTime__lte=toDate)
 
@@ -297,7 +316,7 @@ def export_csv_events(request):
 
     writer.writerow(['Events Summary'])
     writer.writerow(['Start date range: ' + str(fromDate)])
-    writer.writerow(['End date range: ' + str(_toDate)])
+    writer.writerow(['End date range: ' + str(toDate)])
     writer.writerow([ ])
     writer.writerow(['Event ID', 'Event name', 'Start datetime', 'End datetime', 'Min participants', 'Max participants', 'Category', 'Organizer', 'Description', 'Event status', '# participated'])
 
