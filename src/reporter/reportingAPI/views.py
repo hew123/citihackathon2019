@@ -10,11 +10,13 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import status
 
 import csv
-
 # Create your views here.
 # Retrieve event details based on event id
 def demographic(request):
     eventId = request.GET.get('eventId', None)
+    if not eventId:
+        data = {"error": f"eventId query parameter missing"}
+        return JsonResponse(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     try:
         eventId = request.GET.get('eventId', None)
         if int(eventId) < 1:
@@ -82,10 +84,13 @@ def historical(request):
 
     if fromdate:
         if todate:
-            fromDate, toDate = convertDate(fromdate, todate)
+            try:
+                fromDate, toDate = convertDate(fromdate, todate)
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             if fromDate > toDate:
-                return JsonResponse({"error": "fromDate must be later than toDate"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return JsonResponse({"error": "fromDate must be earlier than toDate"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
             return JsonResponse({"error": "toDate should not be empty"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     else:
@@ -118,10 +123,13 @@ def user_historical(request):
 
     if _fromdate:
         if _todate:
-            fromDate, toDate = convertDate(_fromdate,_todate)
+            try:
+                fromDate, toDate = convertDate(_fromdate, _todate)
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             if fromDate > toDate:
-                return JsonResponse({"error": "fromDate must be later than toDate"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return JsonResponse({"error": "fromDate must be earlier than toDate"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             if (toDate-fromDate).days > 365:
                 return JsonResponse({"error": "The range of the date should be lesser than 1 year"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
@@ -207,9 +215,12 @@ def export_csv_events(request):
 
     if fromdate:
         if todate:
-            fromDate, toDate = convertDate(fromdate,todate)
+            try:
+                fromDate, toDate = convertDate(fromdate, todate)
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             if fromDate > toDate:
-                return JsonResponse({"error": "fromDate must be later than toDate"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return JsonResponse({"error": "fromDate must be earlier than toDate"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             if (toDate-fromDate).days > 365:
                 return JsonResponse({"error": "The range of the date should be lesser than 1 year"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
