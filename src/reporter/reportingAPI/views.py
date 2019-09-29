@@ -137,6 +137,25 @@ def user_historical(request):
     _fromdate = request.GET.get('fromDate', None)
     _todate = request.GET.get('toDate', None)
 
+    if not userid:
+        data = {"error": f"userid query parameter missing"}
+        return JsonResponse(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    try:
+        if int(userid) < 1:
+            data = {"error": f"userid: `{userid}` should be greater than `0`"}
+            return JsonResponse(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except ValueError:
+        data = {
+            "error": f"userid: `{userid}` should be of type `<class 'int'>` not {type(userid)}"}
+        return JsonResponse(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    try:
+        #data = demographic_support(eventId)
+        user = User.objects.get(userId = userid)
+    except ObjectDoesNotExist:
+        data = {"error": f"`userid` of {userid} is not found in db"}
+        return JsonResponse(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
     if _fromdate and not is_simple_valid_date(_fromdate):
         return JsonResponse({"error": "fromDate should be in the format of `YYYY-MM-DD`"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
